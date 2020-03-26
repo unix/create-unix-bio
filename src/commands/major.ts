@@ -1,11 +1,19 @@
-import fs from 'fs'
+import fs from 'fs-extra'
 import path from 'path'
 import promptSync from 'prompt-sync'
 import gitClone from 'git-clone'
 import { CommandMajor } from 'func'
-import { execSync } from 'child_process'
 import * as print from '../utils/print'
 import * as spinner from '../utils/spinner'
+
+const ignoreFiles = [
+  'cli',
+  '.git',
+  '.circle.yml',
+  '.travis.yml',
+  '.github',
+  'now.json',
+]
 
 @CommandMajor()
 export class Major {
@@ -55,7 +63,11 @@ export class Major {
   }
   
   async after(): Promise<void> {
-    execSync(`cd ${this.projectPath} && rm -rf cli .git .circle.yml .travis.yml .github now.json`)
+    await Promise.all(ignoreFiles.map(async name => {
+      const ignorePath = path.join(this.projectPath, name)
+      await fs.remove(ignorePath)
+    }))
+    
     const pkgPath = path.join(this.projectPath, 'package.json')
     if (!fs.existsSync(pkgPath)) return
     let pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
